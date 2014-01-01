@@ -1,7 +1,7 @@
 
 // Hardware panel for Flightgear
 // test programm for display, rotary encoders, key matrix
-// ATMEGA32
+// ATMEGA32  16mhz
 
 /************************************************************************/
 /*  credits:                                                            */
