@@ -84,6 +84,7 @@ volatile uint8_t keybyte[8]    ={0,0,0,0,0,0,0,0};
 volatile uint8_t keybyte_old[8]={0,0,0,0,0,0,0,0};
 
 volatile int32_t time, time_old;
+uint8_t seconds=0,minutes=0,hours=0;
 volatile uint8_t kb4, kb0,kb5, changes;
 
 //green LEDs
@@ -103,11 +104,14 @@ volatile uint8_t key_rpt_p;
 uint16_t hdg=180,hdg_old;
 uint16_t spd=250,spd_old, spd_max=900,spd_min=100,spd_steps = 5;
 uint32_t alt=0,  alt_old=77, alt_max=90000;
-uint32_t com=127325,com_old, com_max=136975, com_min=118000, com_steps=25,com_steps_h=1000;
-uint8_t com_mode=FINE;
-uint32_t com2=122225,com2_old;
-uint32_t nav=133335,nav_old;
-uint32_t nav2=124445,nav2_old;
+uint32_t comval, com_max=136975, com_min=118000, com_steps=25,com_steps_h=1000;
+uint8_t com_mode=FINE,radio=0 ;
+uint32_t com[4]={118000,119000,120000,121000};
+uint32_t com_old[4]={118000,119000,120000,121000};
+uint8_t fd=0,ils=0,ap=0,athr=0,loc=0,exped=0,appr=0;
+uint8_t cstr=0,wpt=0,vor=0,ndb=0,arpt=0;
+uint8_t vor_adf1,vor_adf2;
+
 //TODO transponder
 //TODO ADF
 //TODO DME
@@ -359,6 +363,9 @@ void uart_puts (char *s)
 }
 
 
+
+
+
 void ScanKeyMatrix(){
   uint8_t row=0;
   for (row=0;row<8;row++){
@@ -416,10 +423,15 @@ void ScanKeyMatrix(){
   }
   //nav selector
   if (keybyte[6] != keybyte_old[6]){  
-   // led_clear(42-3,3);
-   // led_put_number(keybyte[6], 42);
+   led_clear(42-3,3);
+  
     changes++;
+    change_com_display();
+    
     keybyte_old[6] = keybyte[6];
+   
+    //led_put_number(keybyte[6], 42);
+    //led_put_number(keybyte_old[6], 44);
   }
   //2 switches
   if (keybyte[7] != keybyte_old[7]){  
@@ -697,36 +709,44 @@ uint8_t led_flag=0;
    if( get_key_short( 1<<KEY0 ))//ILS
      {
        LED_PORT ^= 1<<LED2;
+       ils = 1-((LED_PORT & (1<<LED2)) >> LED2);
+       //led_put_number(ils,40);
        led_flag = 1;
      }
     if( get_key_short( 1<<KEY1 ))   //FD
     {
       LED_PORT ^= 1<<LED1;
+      fd=1-((LED_PORT & (1<<LED1)) >> LED1);
       led_flag = 1;
     }
     if( get_key_short( 1<<KEY2 ))  //AP
     {
       LED_PORT ^= 1<<LED3;
+      ap=1-((LED_PORT & (1<<LED3)) >> LED3);
       led_flag = 1;
     }
       if( get_key_short( 1<<KEY3 ))  //ATHR
     {
       LED_PORT ^= 1<<LED4;
+      athr=1-((LED_PORT & (1<<LED4)) >> LED4);
       led_flag = 1;
     }
       if( get_key_short( 1<<KEY4 ))  //HEADING
     {
       LED_PORT ^= 1<<LED5;
+      loc=1-((LED_PORT & (1<<LED5)) >> LED5);
       led_flag = 1;
     }
       if( get_key_short( 1<<KEY5 ))  //ALTITUDE
     {
       LED_PORT ^= 1<<LED6;
+      exped=1-((LED_PORT & (1<<LED6)) >> LED6);
       led_flag = 1;
     }
       if( get_key_short( 1<<KEY6 ))  //VS
     {
       LED_PORT ^= 1<<LED7;
+      appr=1-((LED_PORT & (1<<LED7)) >> LED7);
       led_flag = 1;
     }
     
@@ -748,26 +768,32 @@ uint8_t led_flag=0;
    if( get_key_short_r( 1<<KEY0 ))
      {
        LED_PORT_R ^= 1<<LED6;
+       cstr = 1-((LED_PORT_R & (1<<LED6)) >> LED6);
+       //led_put_number(cstr,40);
        led_flag = 1;
      }
     if( get_key_short_r( 1<<KEY1 ))
     {
       LED_PORT_R ^= 1<<LED5;
+      wpt = 1-((LED_PORT_R & (1<<LED5)) >> LED5);
       led_flag = 1;
     }
     if( get_key_short_r( 1<<KEY2 ))  
     {
       LED_PORT_R ^= 1<<LED4;
+      vor = 1-((LED_PORT_R & (1<<LED4)) >> LED4);
       led_flag = 1;
     }
       if( get_key_short_r( 1<<KEY3 ))  
     {
       LED_PORT_R ^= 1<<LED3;
+      ndb = 1-((LED_PORT_R & (1<<LED3)) >> LED3);
       led_flag = 1;
     }
       if( get_key_short_r( 1<<KEY4 ))  
     {
       LED_PORT_R ^= 1<<LED2;
+      arpt = 1-((LED_PORT_R & (1<<LED2)) >> LED2);
       led_flag = 1;
     }
     
@@ -784,25 +810,64 @@ uint8_t led_flag=0;
 void serial_out()
 {
   uint8_t i;
-  uint8_t puffer[64];
+  char puffer[64];
+  uint32_t number;
+  char Buffer[8];
+  uint8_t c,j;
+  char letter;
  
-  sprintf( puffer, "vs:%d,",vs );
+  sprintf( puffer, "%d,",vs );
   uart_puts( puffer );
-  sprintf( puffer, "baro:%u,",baro );
+  sprintf( puffer, "%u,",baro );
   uart_puts( puffer );
-  sprintf( puffer, "spd:%u,hdg:%u,alt:%lu,",spd,hdg,alt );
+  sprintf( puffer, "%u,%u,%lu,",spd,hdg,alt );
   uart_puts( puffer );
-  sprintf( puffer, "com:%lu,com2:%lu,nav:%lu,nav2:%lu,bytes:",com,com2,nav,nav2 );
-  uart_puts( puffer );
-//TODO: trnasponder,DME, ADF
-  for(i=0;i<8;i++){
-    uart_putc(keybyte[i] );
+  //sprintf( puffer, "%lu,%lu,%lu,%lu,",com[0],com[1],com[2],com[3] );
+  //uart_puts( puffer );
+  // formatting com & nav
+  for(i=0;i<4;i++)
+  {
+    number=com[i];
+    ultoa( number, Buffer, 10 );
+    j = strlen(Buffer);    
+    for (c=0;c<3;c++){
+      letter = Buffer[c];
+      puffer[c]=letter;
+      
+    }  
+    led_put_number(c, 38);
+    puffer[c]='.';
+    for (c=4;c<j;c++){
+      letter = Buffer[c-1];
+      puffer[c]=letter;
+      
+    }
+    led_put_number(c, 38);
+    puffer[c]=0x00;
+    uart_puts(puffer);
+    
+    uart_putc(',');
   }
-    for(i=1;i<3;i++){
-    uart_putc(outword[i] );
-  }
+  
+//  uint8_t fd=0,ils=0,ap=0,athr=0,loc=0,exped=0,appr=0;
+//  uint8_t cstr=0,wpt=0,vor=0,ndb=0,arpt=0;
+ 
+  sprintf( puffer, "%d,%d,%d,%d,%d,%d,%d,",fd,ils,ap,athr,loc,exped,appr );
+  uart_puts( puffer );
+  sprintf( puffer, "%d,%d,%d,%d,%d",cstr,wpt,vor,ndb,arpt );
+  uart_puts( puffer );
+  
+ 
   uart_putc('\n' );
   changes=0;
+  
+//  -500,1008,250,180,800,118.72,119.00,120.00,121.00,0,0,0,0,0,0,0,0,0,0,0,0
+//   vs  baro spd hdg alt  c1     n1      c2     n2   F I ..........C  
+//                                                    D L           S
+//                                                      S           T
+//                                                                  R
+  
+  
 }
 
 void lightshow()
@@ -848,16 +913,111 @@ void lightshow()
   LED_PORT_R =0;
   show_lights();
   led_fill('3', 0,64);
-  wait(1000);
+  wait(500);
   led_fill('2', 0,64);
-  wait(1000);
+  wait(500);
   led_fill('1', 0,64);
-  wait(1000);
+  wait(500);
   
   led_clear(0,64);	
   LED_PORT = 255;
   LED_PORT_R =255;
   show_lights();
+}
+
+
+void uptime()
+{
+  if (seconds<59)
+  {
+  seconds++;
+  }
+  else
+  {
+    seconds=0;
+    if (minutes<59)
+    {
+    minutes++;
+    }
+    else
+    {
+      minutes=0;
+      if (hours<23)
+    {
+    hours++;
+    }
+    else
+    {
+      hours=0;
+    }
+    }
+    
+  }
+  
+  
+ led_fill('O',58-2,2); 
+ led_put_number(hours,58);
+  led_fill('O',64-2,2); 
+ led_put_number(seconds,64);
+  led_fill('O',61-2,2); 
+  led_put_number(minutes,61);
+ 
+  
+}
+
+
+void change_com_display()
+{
+  
+  if( keybyte[6] == 1)
+  {
+    radio=0;
+    led_putc('C',23);
+    led_putc('1',24);
+    led_putc('N',55);
+    led_putc('1',56);
+  }
+   
+  if( keybyte[6] == 2)
+  {
+    radio=1;
+    led_putc('N',23);
+    led_putc('1',24);
+    led_putc('C',55);
+    led_putc('2',56);
+  }
+   
+  if( keybyte[6] == 4)
+  {
+    radio=2;
+    led_putc('C',23);
+    led_putc('2',24);
+    led_putc('N',55);
+    led_putc('2',56);
+  }
+   
+  if( keybyte[6] == 8)
+  {
+    radio=3;
+    led_putc('N',23);
+    led_putc('2',24);
+    led_putc('-',55);
+    led_putc('-',56);
+  }
+  
+    comval=com[radio];
+    led_put_com(comval,32);
+    if (radio<3)
+    {
+    comval=com[radio+1];
+    led_put_com(comval,64);
+    }
+    else
+    {
+      led_clear(64-6,6);
+    }
+  
+  
 }
 
 
@@ -922,13 +1082,16 @@ int main()
     
     
     // time%100 -> 1HZ
-    if(time%100==0 && time != time_old){
-      led_put_number(time/100,64);
+    if(time%25==0 && time != time_old){
+      
+      //uptime();
+      
+      led_put_number(time/100,50);
       //flicker LED
       // LED_PORT ^= 1<<LED4;
       // show_lights(); 
        
-      led_fill(' ',54-5,5);
+      led_fill(' ',54-2,2);
       led_put_number(changes,54);
       if (changes > 0){ 
 	  serial_out();
@@ -1088,22 +1251,23 @@ int main()
       ret = RotaryProcessB(1);
       if (ret == 0x20)
       {
-	if (com > com_min){
-	 com-=com_steps;
+	if (com[radio] > com_min){
+	 com[radio]-=com_steps;
 	}
 	
       }
       if (ret == 0x10)
       {
-	if (com < com_max){
-	  com+=com_steps;
+	if (com[radio] < com_max){
+	  com[radio]+=com_steps;
 	}
       }
-      if (com != com_old)
+      if (com[radio] != com_old[radio])
       {
-	led_fill(' ',32-7,7);
-	led_put_com(com,32);
-	com_old = com;
+	//led_fill(' ',32-7,7);
+	comval = com[radio];
+	led_put_com(comval,32);
+	com_old[radio] = com[radio];
 	changes++;
       }    
       

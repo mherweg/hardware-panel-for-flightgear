@@ -8,10 +8,10 @@ import time
 from array import array
 #from ctypes import *
 
-#host = "localhost"
-#port = 21567
+host = "i3"
+port = 21567
 #buf = 1024
-#addr = (host,port)
+addr = (host,port)
 #UDPSock = socket(AF_INET,SOCK_DGRAM)
 
 lol = []
@@ -146,7 +146,7 @@ def nd_switches(b1):
           
 
 try:
-	ser = serial.Serial(tty, 9600)
+	ser = serial.Serial(tty,19200)
 except:
 	print "Error connecting to " , tty
 	
@@ -206,21 +206,22 @@ while 1:
     element = line.split(',')
     
     # 4knobs
-    rotary_knobs(element)
+    #rotary_knobs(element)
     # todo: com,nav...
     
     # 10 bytes
-    bytes = element[9].split(':')[1]
+    #bytes = element[9].split(':')[1]
     # 5 pushbuttons
-  #  efis_pushbuttons(bytes[9])
+    #efis_pushbuttons(bytes[9])
    
     # properties ?
-    rafi_pushbuttons(bytes[8])
+    #rafi_pushbuttons(bytes[8])
     
-   # nd_knobs(bytes[2],bytes[3])
-   # nd_switches(bytes[1])
+    #nd_knobs(bytes[2],bytes[3])
+    #nd_switches(bytes[1])
     
-#	UDPSock.sendto(line,addr)
+    #outline ="255,177"
+    #UDPSock.sendto(outline,addr)
     #print '*'
     print 'done'
     prevline=line
