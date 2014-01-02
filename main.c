@@ -26,6 +26,11 @@
 #include <util/delay.h>
 #include "util.h"
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h> 
+#include "hc595.h"
+
+
 
 #ifndef F_CPU
 #define F_CPU           16000000                   // processor clock frequency
@@ -110,8 +115,8 @@ uint32_t com[4]={118000,119000,120000,121000};
 uint32_t com_old[4]={118000,119000,120000,121000};
 uint8_t fd=0,ils=0,ap=0,athr=0,loc=0,exped=0,appr=0;
 uint8_t cstr=0,wpt=0,vor=0,ndb=0,arpt=0;
-uint8_t vor_adf1,vor_adf2;
-
+uint8_t vor_adf1,vor_adf2,sw1,sw2,sw3,nd_mode_knob;
+uint16_t nd_range;
 //TODO transponder
 //TODO ADF
 //TODO DME
@@ -194,9 +199,9 @@ unsigned char stateB [6] ={ R_START,R_START,R_START,R_START,R_START,R_START};
 
 ISR( TIMER0_OVF_vect )                            // every 10ms
 {
-  static uint8_t ct0, ct1, rpt;
-  static uint8_t ct0_r, ct1_r, rpt_r;
-  static uint8_t ct0_p, ct1_p, rpt_p;
+  static uint8_t ct0, ct1;
+  static uint8_t ct0_r, ct1_r;
+  static uint8_t ct0_p, ct1_p;
   
   
   uint8_t i,i_r,i_p;
@@ -317,32 +322,26 @@ uint8_t get_key_long( uint8_t key_mask )
   return get_key_press( get_key_rpt( key_mask ));
 }
 
-
-
-void USART_vInit(void)
-{
+void USART_vInit(void){
   UBRRH = (unsigned char)(USART_UBBR_VALUE>>8);
   UBRRL = (unsigned char)USART_UBBR_VALUE;
   UCSRB = (1<<RXEN)|(1<<TXEN);
   UCSRC = (0<<USBS)|(3<<UCSZ0)|(1<<URSEL);
 }
 
-void USART_vSendByte(uint8_t u8Data)
-{
+void USART_vSendByte(uint8_t u8Data){
   //while( (UCSR0A & (1 << UDRE0)) == 0 ){};
   while(!(UCSRA&(1<<UDRE)));   
   UDR = u8Data;
 }
 
-uint8_t USART_vReceiveByte()
-{
+uint8_t USART_vReceiveByte(){
   while(!(UCSRA&(1<<RXC)));
   
   return UDR;
 }
 
-int uart_putc(unsigned char c)
-{
+int uart_putc(unsigned char c){
     while (!(UCSRA & (1<<UDRE)))  /* warten bis Senden moeglich */
     {
     }                             
@@ -351,102 +350,14 @@ int uart_putc(unsigned char c)
     return 0;
 }
  
- 
-/* puts ist unabhaengig vom Controllertyp */
-void uart_puts (char *s)
-{
+
+void uart_puts (char *s){
     while (*s)
     {   /* so lange *s != '\0' also ungleich dem "String-Endezeichen(Terminator)" */
         uart_putc(*s);
         s++;
     }
 }
-
-
-
-
-
-void ScanKeyMatrix(){
-  uint8_t row=0;
-  for (row=0;row<8;row++){
-    
-    PORTC = (PORTC & 0x0F) + (row << 4); 
-    _delay_us(10);
-    keybyte[row] = ~PINA;
-    
-  }
-  //efis Tasten
-  if (keybyte[0] != keybyte_old[0]){  
-  //  led_clear(16-3,3);
-  //  led_put_number(keybyte[0], 16);
-    changes++;
-    keybyte_old[0] = keybyte[0];
-    kb0 = keybyte[0];
-  }
-  //schalter
-  if (keybyte[1] != keybyte_old[1]){  
-   // led_clear(20-3,3);
-   // led_put_number(keybyte[1], 20);
-   changes++;
-    keybyte_old[1] = keybyte[1];
-  }
-  //ROSE
-  if (keybyte[2] != keybyte_old[2]){
-  //  led_clear(26-3,3);
-  //  led_put_number(keybyte[2], 26);
-    changes++;
-    keybyte_old[2] = keybyte[2];
-  }
-  //zoom
-  if (keybyte[3] != keybyte_old[3]){  
-  //  led_clear(30-3,3);
-  //  led_put_number(keybyte[3], 30);
-    changes++;
-    keybyte_old[3] = keybyte[3];
-  }
-  //Rafi
-  if (keybyte[4] != keybyte_old[4]){  
-    //led_clear(34-3,3);
-   // led_put_number(keybyte[4], 34);
-    changes++;
-    keybyte_old[4] = keybyte[4];
-    kb4=keybyte[4];
-  }
-  //rotary push
-  if (keybyte[5] != keybyte_old[5]){  
-   // led_clear(38-3,3);
-   // led_put_number(keybyte[5], 38);
-    changes++;
-    keybyte_old[5] = keybyte[5];
-    kb5 = keybyte[5];
-    
-  }
-  //nav selector
-  if (keybyte[6] != keybyte_old[6]){  
-   led_clear(42-3,3);
-  
-    changes++;
-    change_com_display();
-    
-    keybyte_old[6] = keybyte[6];
-   
-    //led_put_number(keybyte[6], 42);
-    //led_put_number(keybyte_old[6], 44);
-  }
-  //2 switches
-  if (keybyte[7] != keybyte_old[7]){  
-   // led_clear(46-3,3);
-   // led_put_number(keybyte[7], 46);
-    changes++;
-    keybyte_old[7] = keybyte[7];
-  }
-  
-  
-  
-  
-  
-}
-
 
 unsigned char RotaryProcessD( uint8_t knob) {
   // Grab state of input pins.
@@ -498,58 +409,6 @@ unsigned char RotaryProcessB( uint8_t knob) {
     return stateB[knob];
 }
 
-
-
-//Sends a clock pulse on SH_CP line
-void HC595Pulse()
-{
-  //Pulse the Shift Clock
-  HC595_PORT|=(1<<HC595_SH_CP_POS);//HIGH
-  //wait(1);
-  HC595_PORT&=(~(1<<HC595_SH_CP_POS));//LOW
-}
-
-//Sends a clock pulse on ST_CP line
-void HC595Latch()
-{
-  //Pulse the Store Clock
-  HC595_PORT|=(1<<HC595_ST_CP_POS);//HIGH
-  //wait(1);
-  HC595_PORT&=(~(1<<HC595_ST_CP_POS));//LOW
-  //wait(1);
-}
-
-void HC595Write(uint8_t data)
-{
-  //Send each 8 bits serially
-  uint8_t i;
-  
-  //Order is MSB first
-  for(i=0;i<8;i++)
-  {
-    //Output the data on DS line according to the
-    //Value of MSB
-    if(data & 0b10000000)
-    {
-      //MSB is 1 so output high
-      HC595_PORT|=(1<<HC595_DS_POS);
-    }
-    else
-    {
-      HC595_PORT&=(~(1<<HC595_DS_POS));
-      //MSB is 0 so output high
-    }
-    //MH
-    //wait(1);
-    HC595Pulse();  //Pulse the Clock line
-    data=data<<1;  //Now bring next bit at MSB position
-    
-  }
-  
-  //Now all 8 bits have been transferred to shift register
-  //Move them to output latch at one
-  // HC595Latch();
-}
 
 // alphanumeric LED display: 1 char
 void led_putc(uint8_t letter, uint8_t col)
@@ -806,7 +665,7 @@ uint8_t led_flag=0;
     
 }
 
-
+// SERIAL OUT
 void serial_out()
 {
   uint8_t i;
@@ -816,14 +675,9 @@ void serial_out()
   uint8_t c,j;
   char letter;
  
-  sprintf( puffer, "%d,",vs );
+  sprintf( puffer, "%d,%u,%u,%u,%lu,",vs,baro,spd,hdg,alt );
   uart_puts( puffer );
-  sprintf( puffer, "%u,",baro );
-  uart_puts( puffer );
-  sprintf( puffer, "%u,%u,%lu,",spd,hdg,alt );
-  uart_puts( puffer );
-  //sprintf( puffer, "%lu,%lu,%lu,%lu,",com[0],com[1],com[2],com[3] );
-  //uart_puts( puffer );
+ 
   // formatting com & nav
   for(i=0;i<4;i++)
   {
@@ -833,19 +687,14 @@ void serial_out()
     for (c=0;c<3;c++){
       letter = Buffer[c];
       puffer[c]=letter;
-      
     }  
-    led_put_number(c, 38);
     puffer[c]='.';
     for (c=4;c<j;c++){
       letter = Buffer[c-1];
       puffer[c]=letter;
-      
     }
-    led_put_number(c, 38);
     puffer[c]=0x00;
     uart_puts(puffer);
-    
     uart_putc(',');
   }
   
@@ -854,14 +703,16 @@ void serial_out()
  
   sprintf( puffer, "%d,%d,%d,%d,%d,%d,%d,",fd,ils,ap,athr,loc,exped,appr );
   uart_puts( puffer );
-  sprintf( puffer, "%d,%d,%d,%d,%d",cstr,wpt,vor,ndb,arpt );
+  sprintf( puffer, "%d,%d,%d,%d,%d,",cstr,wpt,vor,ndb,arpt );
   uart_puts( puffer );
-  
- 
+  sprintf( puffer, "%d,%d,%d,%d,%d,",sw1,sw2,sw3,vor_adf1,vor_adf2 );
+  uart_puts( puffer );
+  sprintf( puffer, "%d,%d",nd_mode_knob,nd_range );
+  uart_puts( puffer );
   uart_putc('\n' );
   changes=0;
   
-//  -500,1008,250,180,800,118.72,119.00,120.00,121.00,0,0,0,0,0,0,0,0,0,0,0,0
+//  -500,1008,250,180,800,118.72,119.00,120.00,121.00,0,0,0,0,0,0,0,0,0,0,0,0 ,s,s,s,v,v,nd,nd
 //   vs  baro spd hdg alt  c1     n1      c2     n2   F I ..........C  
 //                                                    D L           S
 //                                                      S           T
@@ -966,6 +817,34 @@ void uptime()
 }
 
 
+void handle_switches1()
+{
+  
+  sw1 = keybyte[1] & 1; 
+  sw2 = (keybyte[1] & (1<<1)) >> 1; 
+  sw3 = (keybyte[1] & (1<<2)) >> 2;
+  vor_adf1=0;
+  vor_adf2=0;
+  
+  if (keybyte[1]& 8){
+    vor_adf1 = 2;
+  }
+  if (keybyte[1]& 64){
+    vor_adf1 = 1;
+  }
+  if (keybyte[1]& 32){
+    vor_adf2 = 1;
+  }
+  if (keybyte[1]& 16){
+    vor_adf2 = 2;
+  }
+  
+}
+
+void handle_switches2(){
+}
+
+
 void change_com_display()
 {
   
@@ -1020,14 +899,159 @@ void change_com_display()
   
 }
 
+void rose()
+{
+  //     /instrumentation/efis/nd
+  
+   if( keybyte[2] == 1)
+  {
+    //nd_mode="ILS"
+    nd_mode_knob=1;
+  }
+    if( keybyte[2] == 2)
+  {
+    nd_mode_knob=2;
+  }
+    if( keybyte[2] == 4)
+  {
+    nd_mode_knob=3;
+  }
+    if( keybyte[2] == 8)
+  {
+    nd_mode_knob=4;
+  }
+    if( keybyte[2] == 16)
+  {
+    nd_mode_knob=5;
+  }
+    if( keybyte[2] == 32)
+  {
+    nd_mode_knob=6;
+  }
+}
+
+void set_nd_range(){
+  if( keybyte[3] == 1)
+  {
+    nd_range=10;
+  }
+  if( keybyte[3] == 2)
+  {
+    nd_range=20;
+  }
+  if( keybyte[3] == 4)
+  {
+    nd_range=40;
+  }
+  if( keybyte[3] == 8)
+  {
+    nd_range=80;
+  }
+  if( keybyte[3] ==16)
+  {
+    nd_range=160;
+  }
+  if( keybyte[3] ==32)
+  {
+    nd_range=320;
+  }
+  if( keybyte[3] ==64)
+  {
+    nd_range=640;
+  }
+}
+
+
+void ScanKeyMatrix(){
+  uint8_t row=0;
+  for (row=0;row<8;row++){
+    
+    PORTC = (PORTC & 0x0F) + (row << 4); 
+    _delay_us(10);
+    keybyte[row] = ~PINA;
+    
+  }
+  //efis Tasten
+  if (keybyte[0] != keybyte_old[0]){  
+  //  led_clear(16-3,3);
+  //  led_put_number(keybyte[0], 16);
+    changes++;
+    keybyte_old[0] = keybyte[0];
+    kb0 = keybyte[0];
+  }
+  //schalter
+  if (keybyte[1] != keybyte_old[1]){  
+   //led_clear(40-3,3);
+   //led_put_number(keybyte[1], 40);
+   handle_switches1();
+   changes++;
+   keybyte_old[1] = keybyte[1];
+  }
+  //ROSE
+  if (keybyte[2] != keybyte_old[2]){
+  //  led_clear(26-3,3);
+  //  led_put_number(keybyte[2], 26);
+    rose();
+    changes++;
+    keybyte_old[2] = keybyte[2];
+  }
+  //zoom
+  if (keybyte[3] != keybyte_old[3]){  
+  //  led_clear(30-3,3);
+  //  led_put_number(keybyte[3], 30);
+    set_nd_range();
+    changes++;
+    keybyte_old[3] = keybyte[3];
+  }
+  //Rafi
+  if (keybyte[4] != keybyte_old[4]){  
+    //led_clear(34-3,3);
+   // led_put_number(keybyte[4], 34);
+    changes++;
+    keybyte_old[4] = keybyte[4];
+    kb4=keybyte[4];
+  }
+  //rotary push
+  if (keybyte[5] != keybyte_old[5]){  
+   // led_clear(38-3,3);
+   // led_put_number(keybyte[5], 38);
+    changes++;
+    keybyte_old[5] = keybyte[5];
+    kb5 = keybyte[5];
+    
+  }
+  //nav selector
+  if (keybyte[6] != keybyte_old[6]){  
+   led_clear(42-3,3);
+  
+    changes++;
+    change_com_display();
+    
+    keybyte_old[6] = keybyte[6];
+   
+    //led_put_number(keybyte[6], 42);
+    //led_put_number(keybyte_old[6], 44);
+  }
+  //2 switches
+  if (keybyte[7] != keybyte_old[7]){  
+    led_clear(46-3,3);
+    led_put_number(keybyte[7], 46);
+    handle_switches2();
+    changes++;
+    keybyte_old[7] = keybyte[7];
+  }
+  
+  
+  
+  
+  
+}
+
+
 
 int main()
 {
   
-  //     0b10000001,                      
-  uint8_t c;
-  
-  uint8_t letter = 0;
   unsigned char ret;
   
   
@@ -1047,13 +1071,10 @@ int main()
   
   sei();
   
-  wait(500);
-  lightshow();
-  
-  
-  // testing serial IO
+  //wait(500);
+  //lightshow();
+ 
   USART_vInit();
-  // 
   //         while(1)
   //         {
     //           data = USART_vReceiveByte();
@@ -1062,18 +1083,10 @@ int main()
   //         }
   //         
   
-  USART_vSendByte('o');
-  USART_vSendByte('k');
-  
+ 
   while(1)
   {
-    
-    //data = USART_vReceiveByte();
-    
-    // LED_PORT ^= 1<<LED5;
-    //   show_lights(); 
-       
-    
+   
     ScanKeyMatrix();
     
     //look for button presses and turn the LEDs on & off
@@ -1083,14 +1096,11 @@ int main()
     
     // time%100 -> 1HZ
     if(time%25==0 && time != time_old){
-      
       //uptime();
-      
       led_put_number(time/100,50);
       //flicker LED
       // LED_PORT ^= 1<<LED4;
       // show_lights(); 
-       
       led_fill(' ',54-2,2);
       led_put_number(changes,54);
       if (changes > 0){ 
