@@ -713,7 +713,7 @@ void serial_out()
   changes=0;
   
 //  -500,1008,250,180,800,118.72,119.00,120.00,121.00,0,0,0,0,0,0,0,0,0,0,0,0 ,s,s,s,v,v,nd,nd
-//   vs  baro spd hdg alt  c1     n1      c2     n2   F I ..........C  
+//   vs  baro spd hdg alt  c1     n1      c2     n2   F I ..........C W V N A  
 //                                                    D L           S
 //                                                      S           T
 //                                                                  R
@@ -827,16 +827,16 @@ void handle_switches1()
   vor_adf2=0;
   
   if (keybyte[1]& 8){
-    vor_adf1 = 2;
-  }
-  if (keybyte[1]& 64){
     vor_adf1 = 1;
   }
+  if (keybyte[1]& 64){
+    vor_adf1 = 2;
+  }
   if (keybyte[1]& 32){
-    vor_adf2 = 1;
+    vor_adf2 = 2;
   }
   if (keybyte[1]& 16){
-    vor_adf2 = 2;
+    vor_adf2 = 1;
   }
   
 }
@@ -906,27 +906,27 @@ void rose()
    if( keybyte[2] == 1)
   {
     //nd_mode="ILS"
-    nd_mode_knob=1;
+    nd_mode_knob=0;
   }
     if( keybyte[2] == 2)
   {
-    nd_mode_knob=2;
+    nd_mode_knob=1;
   }
     if( keybyte[2] == 4)
   {
-    nd_mode_knob=3;
+    nd_mode_knob=2;
   }
     if( keybyte[2] == 8)
   {
-    nd_mode_knob=4;
+    nd_mode_knob=3;
   }
     if( keybyte[2] == 16)
   {
-    nd_mode_knob=5;
+    nd_mode_knob=4;
   }
     if( keybyte[2] == 32)
   {
-    nd_mode_knob=6;
+    nd_mode_knob=5;
   }
 }
 
