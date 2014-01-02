@@ -707,7 +707,17 @@ void serial_out()
   uart_puts( puffer );
   sprintf( puffer, "%d,%d,%d,%d,%d,",sw1,sw2,sw3,vor_adf1,vor_adf2 );
   uart_puts( puffer );
-  sprintf( puffer, "%d,%d",nd_mode_knob,nd_range );
+  sprintf( puffer, "%d,%d,",nd_mode_knob,nd_range );
+  uart_puts( puffer );
+  switch(nd_mode_knob) {
+    	case 0: sprintf(puffer,"ILS"); break;
+	case 1: sprintf(puffer,"VOR"); break;
+	case 2: sprintf(puffer,"NAV"); break;
+	case 3: sprintf(puffer,"ARC"); break;
+	case 4: sprintf(puffer,"PLAN"); break;
+	case 5: sprintf(puffer,"ENG"); break;
+	//default: printf("a ist irgendwas\n"); break;
+    }
   uart_puts( puffer );
   uart_putc('\n' );
   changes=0;
@@ -902,63 +912,29 @@ void change_com_display()
 void rose()
 {
   //     /instrumentation/efis/nd
+  switch(keybyte[2]) {
+    case 1: nd_mode_knob=0 ; break;
+    case 2: nd_mode_knob=1 ; break;
+    case 4: nd_mode_knob=2 ; break;
+    case 8: nd_mode_knob=3 ; break;
+    case 16: nd_mode_knob=4 ; break;
+    case 32: nd_mode_knob=5 ; break;
+  }
   
-   if( keybyte[2] == 1)
-  {
-    //nd_mode="ILS"
-    nd_mode_knob=0;
-  }
-    if( keybyte[2] == 2)
-  {
-    nd_mode_knob=1;
-  }
-    if( keybyte[2] == 4)
-  {
-    nd_mode_knob=2;
-  }
-    if( keybyte[2] == 8)
-  {
-    nd_mode_knob=3;
-  }
-    if( keybyte[2] == 16)
-  {
-    nd_mode_knob=4;
-  }
-    if( keybyte[2] == 32)
-  {
-    nd_mode_knob=5;
-  }
 }
 
 void set_nd_range(){
-  if( keybyte[3] == 1)
-  {
-    nd_range=10;
+  
+  switch(keybyte[3]) {
+    case 1: nd_range=10 ; break;
+    case 2: nd_range=20 ; break;
+    case 4: nd_range=40 ; break;
+    case 8: nd_range=80 ; break;
+    case 16: nd_range=160 ; break;
+    case 32: nd_range=320 ; break;
+    case 64: nd_range=640 ; break;
   }
-  if( keybyte[3] == 2)
-  {
-    nd_range=20;
-  }
-  if( keybyte[3] == 4)
-  {
-    nd_range=40;
-  }
-  if( keybyte[3] == 8)
-  {
-    nd_range=80;
-  }
-  if( keybyte[3] ==16)
-  {
-    nd_range=160;
-  }
-  if( keybyte[3] ==32)
-  {
-    nd_range=320;
-  }
-  if( keybyte[3] ==64)
-  {
-    nd_range=640;
-  }
+  
 }
 
 
@@ -1072,9 +1048,10 @@ int main()
   sei();
   
   //wait(500);
-  //lightshow();
- 
+  lightshow();
+  led_clear(0,64);
   USART_vInit();
+  
   //         while(1)
   //         {
     //           data = USART_vReceiveByte();
