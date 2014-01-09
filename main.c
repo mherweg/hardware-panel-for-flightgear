@@ -109,7 +109,7 @@ volatile uint8_t key_rpt_p;
 uint16_t hdg=180,hdg_old;
 uint16_t spd=250,spd_old, spd_max=900,spd_min=100,spd_steps = 5;
 uint32_t alt=0,  alt_old=77, alt_max=90000;
-uint32_t comval, com_max=136975, com_min=118000, com_steps=25,com_steps_h=1000;
+uint32_t comval, com_max=150975, com_min=100000, com_steps=25,com_steps_h=1000;
 uint8_t com_mode=FINE,radio=0 ;
 uint32_t com[4]={118000,119000,120000,121000};
 uint32_t com_old[4]={118000,119000,120000,121000};
@@ -122,7 +122,7 @@ uint16_t nd_range;
 //TODO DME
 uint8_t alt_steps = 100;
 int vs=0, vs_old=77, vs_min=-3500,vs_max=4000,vs_steps = 100;
-uint16_t baro=1013, baro_old;
+uint16_t baro=3000, baro_old;
   
 // good baud rates for 16MHZ: 38400, 9600, 19200
 // 0.2% error rate
@@ -675,7 +675,7 @@ void serial_out()
   uint8_t c,j;
   char letter;
  
-  sprintf( puffer, "%d,%u,%u,%u,%lu,",vs,baro,spd,hdg,alt );
+  sprintf( puffer, "%d,%u.%u,%u,%u,%lu,",vs,baro/100,baro%100,spd,hdg,alt );
   uart_puts( puffer );
  
   // formatting com & nav
