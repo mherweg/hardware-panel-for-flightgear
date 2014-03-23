@@ -1,0 +1,195 @@
+<?xml version="1.0"?>
+
+<PropertyList>
+ <comment>
+  <![CDATA[
+    Usage:  
+    --generic=socket,in,2,i3,21567,udp,lasermans_panel
+    
+    Version for the A320-family of planes
+    
+  ]]>
+ </comment>
+
+ <generic>
+ <input>
+   <line_separator>newline</line_separator>
+   <var_separator>,</var_separator>
+
+ <!-- vs -->
+   <chunk>
+    <name>vs</name>
+     <format>%d</format>
+     <!-- A330 
+    <node>/flight-management/fcu-values/vs</node>  
+    -->
+    <!-- A320, 777 -->
+    <node>/autopilot/settings/vertical-speed-fpm</node>
+   </chunk>
+    <chunk>
+    <name>baro</name>
+         <type>float</type>
+	<node>/instrumentation/altimeter/setting-inhg</node>
+   </chunk>
+   <!-- spd -->
+   <chunk>
+    <name>spd</name>
+    
+    <format>%d</format>
+    <node>/autopilot/settings/target-speed-kt</node>
+   </chunk>
+     <!-- hdg -->
+   <chunk>
+    <name>hdg</name>
+    <format>%d</format>
+    <node>/autopilot/settings/heading-bug-deg</node>
+   </chunk>
+      <!-- alt -->
+   <chunk>
+    <name>alt</name>
+    <format>%d</format>
+    <node>/autopilot/settings/target-altitude-ft</node>
+   </chunk>
+     
+   <!-- radios -->
+   <chunk>
+    <name>com1</name>
+    <type>float</type>
+    <node>/instrumentation/comm/frequencies/selected-mhz</node>
+   </chunk>
+   
+   <chunk>
+    <name>nav1</name>
+    <type>float</type>
+    <node>/instrumentation/nav/frequencies/selected-mhz</node>
+   </chunk>
+   
+   <chunk>
+    <name>com2</name>
+    <type>float</type>
+    <node>/instrumentation/comm[1]/frequencies/selected-mhz</node>
+   </chunk>
+   
+   <chunk>
+    <name>nav2</name>
+    <type>float</type>
+    <node>/instrumentation/nav[1]/frequencies/selected-mhz</node>
+   </chunk>
+   
+   <!-- TODO: AP tasten -->
+    <chunk>
+   <name>FD</name>
+   <type>bool</type>
+    <node>/autopilot/settings/flight-director</node>
+   </chunk>
+   
+   <chunk>
+   <name>ILS</name>
+   <type>bool</type>
+    <node>/instrumentation/pfd/ils</node>
+   </chunk>
+   
+    <chunk>
+   <name>AP</name>
+   <type>bool</type>
+    <node>/autopilot/settings/engaged</node>
+   </chunk>
+   
+    <chunk>
+   <name>ATHR</name>
+   <type>bool</type>
+    <node>/autopilot/settings/autothrottle</node>
+   </chunk>
+   
+    <chunk>
+   <name>LOC</name>
+   <type>bool</type>
+    <node></node>
+   </chunk>
+   
+    <chunk>
+   <name>EXPED</name>
+   <type>bool</type>
+    <node></node>
+   </chunk>
+   
+    <chunk>
+   <name>APPR</name>
+   <type>bool</type>
+    <node></node>
+   </chunk>
+   <!-- efis tasten -->
+  <chunk>
+   <name>CSTR</name>
+   <type>bool</type>
+    <node>/instrumentation/efis/inputs/CSTR</node>
+   </chunk>
+   
+  <chunk>
+   <name>WPT</name>
+   <type>bool</type>
+    <node>/instrumentation/efis/inputs/WPT</node>
+   </chunk>
+   
+  <chunk>
+   <name>VORD</name>
+   <type>bool</type>
+    <node>/instrumentation/efis/inputs/VORD</node>
+   </chunk>
+   
+   <chunk>
+   <name>NDB</name>
+   <type>bool</type>
+    <node>/instrumentation/efis/inputs/NDB</node>
+   </chunk>
+        
+    <chunk>
+   <name>ARPT</name>
+   <type>bool</type>
+    <node>/instrumentation/efis/inputs/ARPT</node>
+   </chunk>
+   <!-- 3 switches -->
+    <chunk>
+      <type>bool</type>
+    <node>/controls/lighting/strobe</node>
+     <!-- /controls/lighting/beacon -->
+   </chunk>
+   
+    <chunk>
+      <type>bool</type>
+    <node>/controls/gear/gear-down</node>
+   </chunk>
+   
+    <chunk>
+      <type>bool</type>
+    <node>/controls/lighting/nav-lights-switch</node>
+   </chunk>
+   
+   <!-- vor adf 1 & 2-->
+   <chunk>
+       <node>/instrumentation/mfd/nav-display</node>
+   </chunk>
+   
+   <chunk>
+       <node>/instrumentation/mfd/nav-display[1]</node>
+   </chunk>
+   
+   <chunk>
+    <node>/instrumentation/efis/mfd/mode-num</node>
+   </chunk>
+   
+    <chunk>
+      <node>/instrumentation/efis/inputs/range</node>
+   </chunk>
+   
+    <chunk>
+     <type>string</type>
+     <format>%s</format>
+    <node>/instrumentation/efis/mfd/display-mode</node>
+   </chunk>
+   
+  </input>
+
+ </generic>
+
+</PropertyList>
